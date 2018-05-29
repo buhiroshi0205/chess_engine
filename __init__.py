@@ -1,10 +1,10 @@
-import time, copy, pdb, chess
+import time, copy, chess
 
 if __name__ == '__main__':
-	from misc import State, HashTable, Move, NULLMOVE
+	from misc import State, HashTable, Move, NULLMOVE, SQUARES
 else:
 	from . import misc
-	State, HashTable, Move, NULLMOVE = misc.State, misc.HashTable, misc.Move, misc.NULLMOVE
+	State, HashTable, Move, NULLMOVE, SQUARES = misc.State, misc.HashTable, misc.Move, misc.NULLMOVE, misc.SQUARES
 
 
 class Engine():
@@ -85,8 +85,6 @@ class Engine():
 						if a >= b: break
 					else: # nah non-pv move as bad as expected 
 						if v > best: best = v
-
-		if best == -100000: pdb.set_trace()
 
 		if a < -40000:  # stalemate check:
 			value1 = self.basic_negamax(n, 2)
@@ -177,25 +175,8 @@ class Engine():
 
 
 
-'''
-TODO:
-
-pvs - done
-mtdf
-time management - done
-engdame pst - done
-evaluation: mobility
-'''
-
 if __name__ == '__main__':
 	engine = Engine()
-	#engine.root.make_move(Move(d2,d4,P,0))
-	engine.root = State('5k2/3R4/8/3N2K1/P7/7P/8/8 w - - 3 51')
-	print(engine.root)
-	tm = time.time()
-	engine.search(8)
-	print(time.time()-tm)
-	exit()
 	while True:
 		print(engine.root)
 		print('Engine thinking...')

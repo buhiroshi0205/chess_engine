@@ -44,11 +44,10 @@ if '.' in __name__:
 	from . import evaluation
 else:
 	import evaluation
-	
+
 class Snapshot():
 
 	def __init__(self, state):
-		self.value = state.value
 		self.zobrist = state.zobrist
 		self.castling_rights = state.castling_rights.copy()
 		self.majorpiecesleft = state.majorpiecesleft
@@ -57,7 +56,6 @@ class Snapshot():
 		self.endval = state.eval.endvalue
 
 	def restore(self, state):
-		state.value = self.value
 		state.zobrist = self.zobrist
 		state.castling_rights = self.castling_rights
 		state.majorpiecesleft = self.majorpiecesleft
@@ -128,7 +126,6 @@ class State():
 		self.fullmove_number = int(blocks[5])
 
 		#Iterate over the board to fill in remaining information
-		self.value = 0
 		self.zobrist = ZOBRIST_TURN if self.turn > 0 else 0
 		self.majorpiecesleft = -2
 		for i in SQUARES:
