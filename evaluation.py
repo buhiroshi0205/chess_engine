@@ -142,8 +142,10 @@ for i in range(6,0,-1):
 	mpst.append(temp1)
 	epst.append(temp2)
 
-
-from misc import SQUARES
+  
+SQUARES = []
+for i in range(8):
+  SQUARES.extend(range(i * 16, i * 16 + 8))
 
 
 class Eval():

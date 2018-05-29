@@ -16,6 +16,7 @@ for i in range(8):
 
 #Piece stuff
 UNICODE_PIECE_SYMBOLS = u'.♟♞♝♜♛♚♔♕♖♗♘♙'
+ASCII_PIECE_CHARS = '.PNBRQKkqrbnp'
 [k, q, r, b, n, p, blank, P, N, B, R, Q, K] = range(-6,7)
 
 # directions that pieces move in
@@ -39,11 +40,15 @@ ZOBRIST_TURN = random.getrandbits(64)
 # Simplify code for castling rights check
 CASTLING_CHECK_SQ = [[e1, h1], [a1, e1], [e8, h8], [a8, e8]]
 
-import evaluation
-
+if '.' in __name__:
+	from . import evaluation
+else:
+	import evaluation
+	
 class Snapshot():
 
 	def __init__(self, state):
+		self.value = state.value
 		self.zobrist = state.zobrist
 		self.castling_rights = state.castling_rights.copy()
 		self.majorpiecesleft = state.majorpiecesleft
@@ -52,6 +57,7 @@ class Snapshot():
 		self.endval = state.eval.endvalue
 
 	def restore(self, state):
+		state.value = self.value
 		state.zobrist = self.zobrist
 		state.castling_rights = self.castling_rights
 		state.majorpiecesleft = self.majorpiecesleft
@@ -69,6 +75,30 @@ class State():
 			string += '\n'
 		string += '\nvalue = %d\n\n' % self.eval.get_score()
 		return string
+
+	def fen(self):
+		fen = ''
+		for rank in range(7,-1,-1):
+			blank = 0
+			for piece in self.board[rank*16:rank*16+8]:
+				if piece == 0:
+					blank += 1
+				else:
+					if blank > 0:
+						fen += str(blank)
+						blank = 0
+					fen += ASCII_PIECE_CHARS[piece]
+			if blank > 0:
+				fen += str(blank)
+			if rank != 0: fen += '/'
+		fen += ' w ' if self.turn == 1 else ' b '
+		for i,j in enumerate(self.castling_rights):
+			if j: fen += 'KQkq'[i]
+		if fen[-1] == ' ': fen += '-'
+		fen += ' - 0 '
+		fen += str(self.fullmove_number)
+		return fen
+
 
 	def __init__(self, fen='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'):
 		blocks = fen.split()
@@ -98,6 +128,7 @@ class State():
 		self.fullmove_number = int(blocks[5])
 
 		#Iterate over the board to fill in remaining information
+		self.value = 0
 		self.zobrist = ZOBRIST_TURN if self.turn > 0 else 0
 		self.majorpiecesleft = -2
 		for i in SQUARES:

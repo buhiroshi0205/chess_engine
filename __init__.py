@@ -1,5 +1,10 @@
-import time, copy, pdb
-from misc import *
+import time, copy, pdb, chess
+
+if __name__ == '__main__':
+	from misc import State, HashTable, Move, NULLMOVE
+else:
+	from . import misc
+	State, HashTable, Move, NULLMOVE = misc.State, misc.HashTable, misc.Move, misc.NULLMOVE
 
 
 class Engine():
@@ -12,7 +17,7 @@ class Engine():
 		self.bestmoves = HashTable(10 ** 6)
 
 
-	def negamax(self, n, d, p, a, b, last_move, timelimit = None):
+	def negamax(self, n, d, p, a, b, last_move, timelimit=None, legalmoves=None):
 		#print(n)
 		if timelimit is not None:
 			if time.time() > timelimit: return None
@@ -34,6 +39,7 @@ class Engine():
 
 		if pv is None:  # alphabeta
 			for move in n.generate_moves():
+				if legalmoves is not None and str(move) not in legalmoves: continue
 				snapshot = n.make_move(move)
 				v = -self.negamax(n, d - 1, p + 1, -b, -a, move, timelimit)
 				n.unmake_move(move, snapshot)
@@ -58,6 +64,7 @@ class Engine():
 
 			if a < b:
 				for move in n.generate_moves():
+					if legalmoves is not None and str(move) not in legalmoves: continue
 					if pv.to_sq == move.to_sq and pv.from_sq == move.from_sq: continue
 
 					snapshot = n.make_move(move)
@@ -78,6 +85,8 @@ class Engine():
 						if a >= b: break
 					else: # nah non-pv move as bad as expected 
 						if v > best: best = v
+
+		if best == -100000: pdb.set_trace()
 
 		if a < -40000:  # stalemate check:
 			value1 = self.basic_negamax(n, 2)
@@ -115,7 +124,7 @@ class Engine():
 		return a
 
 	def basic_negamax(self, n, d):
-		if n.leaf or d == 0: return n.evaluate()
+		if n.leaf() or d == 0: return n.evaluate()
 		best = -100000
 		for move in n.generate_moves():
 			snapshot = n.make_move(move)
@@ -125,16 +134,17 @@ class Engine():
 		return best
 
 	def search(self, depth=None, movetime=None, params=None):
+		global nodes, nodes_q
 		if params is not None:
 			depth, movetime = params
-		backup = copy.deepcopy(self.root)
 		timelimit = None if movetime is None else (time.time() + movetime)
-		global nodes, nodes_q
+		backup = copy.deepcopy(self.root)
+		legalmoves = [move.uci() for move in chess.Board(self.root.fen()).legal_moves]
 		d = 1
 		while True:
 			nodes = nodes_q = 0
 			try:
-				value = self.negamax(self.root, d, 0, -100000, 100000, None, timelimit)
+				value = self.negamax(self.root, d, 0, -100000, 100000, None, timelimit, legalmoves=legalmoves)
 			except TypeError:
 				break
 			bestmove = self.bestmoves.get(self.root.zobrist)
@@ -143,6 +153,7 @@ class Engine():
 			while mv is not None:
 				pv.append(str(mv))
 				self.root.make_move(mv)
+				if self.root.zobrist == backup.zobrist: break
 				mv = self.bestmoves.get(self.root.zobrist)
 			self.root = copy.deepcopy(backup)
 			print(('depth=%d: value = %.2f, nodes = %d, quiescence nodes = %d, pv = ' % (d, value / 100, nodes, nodes_q)) + ' '.join(pv))
@@ -151,10 +162,9 @@ class Engine():
 		self.root = backup
 		return bestmove, value
 
-	def ssearch(self, d):
-		global nodes, nodes_q
-		nodes = nodes_q = 0
-		return self.negamax(self.root,d,0,-100000,100000,None)
+	def ssearch(self, d, n=None):
+		if n is None: n = self.root
+		return self.negamax(n,d,0,-100000,100000,None)
 
 	def allocatetime(self, timeleft, inc):#both in milliseconds
 		timeleft /= 1000
@@ -180,8 +190,11 @@ evaluation: mobility
 if __name__ == '__main__':
 	engine = Engine()
 	#engine.root.make_move(Move(d2,d4,P,0))
-	engine.root = State('2kr1b1r/ppp1pppp/8/8/3q4/2P5/PP2QPPP/R1B2RK1 b - - 0 11')
-	engine.search(6)
+	engine.root = State('5k2/3R4/8/3N2K1/P7/7P/8/8 w - - 3 51')
+	print(engine.root)
+	tm = time.time()
+	engine.search(8)
+	print(time.time()-tm)
 	exit()
 	while True:
 		print(engine.root)
